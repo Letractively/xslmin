@@ -64,6 +64,26 @@
 		</xsl:call-template>
 	</xsl:template>
 	
+	<xsl:template match="foot">
+		<xsl:variable name="tex">
+			<xsl:text>ABCD</xsl:text>
+		</xsl:variable>
+	  	<xsl:variable name="mex">
+			<xsl:text>EFGH</xsl:text>
+		</xsl:variable>
+		<xsl:variable name="tex-mex">
+			<xsl:text>IJKL</xsl:text>
+		</xsl:variable>
+		<xsl:variable name="tex_mex">
+			<xsl:text>IJKL</xsl:text>
+		</xsl:variable>
+		<xsl:variable name="mex_tex">
+			<xsl:text>MNOP</xsl:text>
+		</xsl:variable>
+		<xsl:value-of select="concat($tex,$mex,$tex-mex,$tex_mex,$mex_tex)" handle="varMatchA"/>
+		<xsl:value-of select="concat('$tex','$mex','$tex-mex','$tex','-mex','tex_mex','mex_tex','tex')" handle="varMatchB"/>
+	</xsl:template>
+	
 	<xsl:template match="div">
 	  <xsl:element name="{$globalShadow}">
 	  	<xsl:attribute name="fu">
