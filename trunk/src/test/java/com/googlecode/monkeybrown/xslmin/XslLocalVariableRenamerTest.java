@@ -92,6 +92,25 @@ public class XslLocalVariableRenamerTest extends TestCase
 	}
 	
 	/**
+	 * Test that the references to local variables were correctly renamed (Google Code Issue #1)
+	 */
+	public void testPartialMatchesNotRenamedNonWordChar() 
+	{
+		String vars = "//xsl:template/descendant::xsl:value-of[@handle='varMatchA']/@select";
+		String fakeVars = "//xsl:template/descendant::xsl:value-of[@handle='varMatchB']/@select";
+		
+		Node varsB4 = (Node) XslMinTestUtils.executeXpathOnUnminifiedResult(vars, XPathConstants.NODE);
+		Node fakeVarsB4 = (Node) XslMinTestUtils.executeXpathOnUnminifiedResult(fakeVars, XPathConstants.NODE);
+		
+		Node varsAfter = (Node) XslMinTestUtils.executeXpathOnMinifiedResult(vars, XPathConstants.NODE);
+		Node fakeVarsAfter = (Node) XslMinTestUtils.executeXpathOnMinifiedResult(fakeVars, XPathConstants.NODE);
+		
+		assertEquals(fakeVarsB4.getNodeValue(), fakeVarsAfter.getNodeValue());
+		assertTrue(varsB4.getNodeValue().indexOf('-') > 0);
+		assertFalse(varsAfter.getNodeValue().indexOf('-') > 0);
+	}
+	
+	/**
 	 * Test that local variables and local params are not renamed to the same name in the same scope
 	 * PRECONDITION: both the local variable renaming AND the local parameter renaming must have been executed for this test to prove anything
 	 */
