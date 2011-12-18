@@ -8,7 +8,7 @@ import org.w3c.dom.NodeList;
 /**
  * Always call this BEFORE renaming global variables / params.
  * We need to rename starting in the lowest scope and working up.
- * 
+ *
  * @author Rick Brown
  */
 public class XslLocalVariableRenamer extends NodeRenamer
@@ -19,20 +19,20 @@ public class XslLocalVariableRenamer extends NodeRenamer
 		int renamed = 0;
 		Node scope = node.getParentNode();//the variable is scoped by its parent
 		NodeList nodes = XslMin.xpathUtils.executeQuery(scope, getUsageXpath(oldName));
-	    for(int i = 0, len = nodes.getLength(); i < len; i++)
-	    {
-	    	Node next = nodes.item(i);
-    		String attributeValue = next.getNodeValue();
-    		String matchRe = "\\$\\b" + oldName + "\\b(?![\\'\\-\\._])";
-    		if(attributeValue.matches(matchRe));
-    		{
-    			next.setNodeValue(attributeValue.replaceAll(matchRe, "\\$" + newName));
-    			renamed++;
-    		}
-	    }
-	    return renamed;
+		for(int i = 0, len = nodes.getLength(); i < len; i++)
+		{
+			Node next = nodes.item(i);
+			String attributeValue = next.getNodeValue();
+			String matchRe = "\\$\\b" + oldName + "\\b(?![\\'\\-\\._])";
+			if(attributeValue.matches(".*" + matchRe + ".*"))
+			{
+				next.setNodeValue(attributeValue.replaceAll(matchRe, "\\$" + newName));
+				renamed++;
+			}
+		}
+		return renamed;
 	}
-	
+
 	@Override
 	public String getClashTestXpath()
 	{
@@ -44,13 +44,13 @@ public class XslLocalVariableRenamer extends NodeRenamer
 	{
 		return false;//TODO
 	}
-	
+
 	@Override
 	public NodeList getNodesToRename() throws XPathExpressionException
 	{
 		return XslMin.xpathUtils.executeQuery("//xsl:template/descendant::xsl:variable[@name]");
 	}
-	
+
 	protected String getUsageXpath(String varName)
 	{
 		return "descendant::*/@*[contains(.,'" + "$" + varName + "')]";

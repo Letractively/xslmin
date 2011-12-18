@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.googlecode.monkeybrown.xslmin;
 
@@ -24,8 +24,9 @@ public class XslMin
 				String inputXslPath = args[0];
 				String outputXslPath = args[1];
 				System.out.println(String.format("Begining minification, input %s output: %s", inputXslPath, outputXslPath));
+				long start = System.currentTimeMillis();
 				XslMin.minify(inputXslPath, outputXslPath);
-				System.out.println("Finished minification");
+				System.out.println("Finished minification (" + (System.currentTimeMillis()-start) + "ms)");
 			}
 			else
 			{
@@ -37,7 +38,7 @@ public class XslMin
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * @param inputXslPath
 	 * @param outputXslPath
