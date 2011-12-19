@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<!-- 
+<!--
 	This is used in the xslmin junit tests.
 	Basically don't mess around with existing parts of it.
-	If you need a particular case tested that is not part of the existing XSLT 
+	If you need a particular case tested that is not part of the existing XSLT
 	then add new templates / global vars etc after existing ones.
-	
+
 	Note that there are some non-standard attributes added to the XSL. These are
 	to help getting handles on specific elements for the tests.
 -->
@@ -15,7 +15,11 @@
 	<xsl:param name="globalParamShadow"><!-- Must remain first global param -->
 		<xsl:value-of select="foobart"/>
 	</xsl:param>
-	
+
+	<xsl:variable name="stripped" handle="gvStrippedDef">
+		<xsl:call-template name="getStripped"/>
+	</xsl:variable>
+
 	<xsl:template name="sed"><!-- Must remain the FIRST template and must NOT have a match attribute -->
 		<xsl:param name="localA" select="'localA'"/><!-- This must remain the first local param in the whole stylesheet-->
 		<xsl:variable name="localB"><!-- This must remain the first local variable in the whole stylesheet-->
@@ -35,7 +39,7 @@
 		<xsl:value-of select="concat($local1, $globalShadow)" handle="noref1"/>
 	  </xsl:element>
 	</xsl:template>
-	
+
 	<xsl:template name="fred" match="span">
 		<xsl:param name="local1"/>
 		<xsl:element name="bar">
@@ -48,7 +52,7 @@
 			<xsl:value-of select="concat($local1, $globalShadow)" handle="ref1"/>
 		</div>
 	</xsl:template>
-	
+
 	<xsl:template name="ned" match="elephant" handle="tmpl1">
 		<xsl:variable name="local2" handle="partialMatchA">
 			<xsl:text>Mr Local Variable the Second</xsl:text>
@@ -63,7 +67,7 @@
 			</xsl:with-param>
 		</xsl:call-template>
 	</xsl:template>
-	
+
 	<xsl:template match="foot">
 		<xsl:variable name="tex">
 			<xsl:text>ABCD</xsl:text>
@@ -83,7 +87,7 @@
 		<xsl:value-of select="concat($tex,$mex,$tex-mex,$tex_mex,$mex_tex)" handle="varMatchA"/>
 		<xsl:value-of select="concat('$tex','$mex','$tex-mex','$tex','-mex','tex_mex','mex_tex','tex')" handle="varMatchB"/>
 	</xsl:template>
-	
+
 	<xsl:template match="div">
 	  <xsl:element name="{$globalShadow}">
 	  	<xsl:attribute name="fu">
@@ -91,9 +95,9 @@
 	  	</xsl:attribute>
 	  </xsl:element>
 	</xsl:template>
-	
+
 	<xsl:template match="nose" handle="collapse1">
-		<!-- 
+		<!--
 			The attributes on this element are hardcoded as expected results in JUnit tests
 			so be careful when changing anything.
 		 -->
@@ -135,5 +139,15 @@
 			</xsl:if>
 		</xsl:element>
 	</xsl:template>
-	
+
+	<xsl:template name="makeHead">
+			<xsl:element name="script">
+				<xsl:value-of handle="gvStrippedRef" select="concat('defaultXslUrl:&#34;', normalize-space($stripped), '&#34;,&#xA;')"/>
+		</xsl:element>
+	</xsl:template>
+
+	<xsl:template name="getStripped">
+		<xsl:text>stripped</xsl:text>
+	</xsl:template>
+
 </xsl:stylesheet>

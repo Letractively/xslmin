@@ -24,9 +24,9 @@ public class XslLocalVariableRenamer extends NodeRenamer
 			Node next = nodes.item(i);
 			String attributeValue = next.getNodeValue();
 			String matchRe = "\\$\\b" + oldName + "\\b(?![\\'\\-\\._])";
-			if(attributeValue.matches(".*" + matchRe + ".*"))
+			if(attributeValue.contains('$' + oldName))//this is a fast check, but not 100% accurate
 			{
-				next.setNodeValue(attributeValue.replaceAll(matchRe, "\\$" + newName));
+				next.setNodeValue(attributeValue.replaceAll(matchRe, "\\$" + newName));//this is the 100% accurate search
 				renamed++;
 			}
 		}
