@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.xml.xpath.XPathExpressionException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -32,6 +33,7 @@ public class Stylesheet extends Scope
 	private static final String REF_TO_VAR_RE =  "\\$(\\b['\\-\\._\\w]+\\b)";
 	private final Pattern refToVarRe;
 	private Map<String, Scope> templates = new HashMap<String, Scope>();
+	private XslElementCollapser xslElementCollapser;
 	NameGenerator nameGenerator;
 
 
@@ -44,6 +46,7 @@ public class Stylesheet extends Scope
 		super(rootNode);
 		this.dontRenameParams = true;
 		nameGenerator = new NameGenerator();
+		xslElementCollapser = new XslElementCollapser();
 		refToVarRe = Pattern.compile(REF_TO_VAR_RE);
 		Document document = rootNode.getOwnerDocument();
 		DocumentTraversal traversal = (DocumentTraversal) document;
@@ -67,13 +70,13 @@ public class Stylesheet extends Scope
 	 *
 	 * TODO: When we remove a node it is possible that other nodes are no longer being
 	 * referenced anymore - we should ensure proper cleanup is carried out.
-	 * 
+	 *
 	 * @param preserve If true the names of unused elements will be printed and not removed
-	 * @return the number of templates removed
+	 * @return the total number of items removed
 	 */
-	public void processAllUnused(final boolean preserve)
+	public int processAllUnused(final boolean preserve)
 	{
-		int removed =	this.processUnused(preserve);
+		int result = 0, removed = this.processUnused(preserve);
 		String verb = preserve? "Unused " : "Removed ";
 		if(removed > 0)
 		{
@@ -96,6 +99,7 @@ public class Stylesheet extends Scope
 				removed = scope.processUnused(preserve);
 				if(removed > 0)
 				{
+					result += removed;
 					System.out.println(verb + removed + " in " + nextName);
 				}
 
@@ -110,6 +114,7 @@ public class Stylesheet extends Scope
 
 			System.out.println(verb + " template: " + nextName);
 		}
+		return result + toRemove.size();
 	}
 
 	/**
@@ -120,6 +125,18 @@ public class Stylesheet extends Scope
 	{
 		super.renameAllScoped();
 		renameAllTemplates();
+	}
+
+	public void collapseElements()
+	{
+		try
+		{
+			xslElementCollapser.rewriteElements();
+		}
+		catch(XPathExpressionException ex)
+		{
+			System.err.println(ex.getMessage());
+		}
 	}
 
 	/**
@@ -317,6 +334,18 @@ public class Stylesheet extends Scope
 		else if(tagName.equals("xsl:param") && !currentScope.dontRenameParams)
 		{
 			currentScope.addScoped(current);//don't rename global params or params in templates with a "match" attribute
+		}
+		else if(tagName.equals("xsl:element"))
+		{
+			String name = getNodeName(current);
+			if(name != null && name.indexOf('{') < 0)
+			{
+				NamedNodeMap attributes = current.getAttributes();
+				if(attributes.getNamedItem("use-attribute-sets") == null && attributes.getNamedItem("namespace") == null)
+				{
+					xslElementCollapser.addCandidate(current);
+		}
+			}
 		}
 		findReferences(current, currentScope);
 
