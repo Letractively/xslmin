@@ -17,6 +17,7 @@
 	</xsl:param>
 
 	<xsl:variable name="stripped" handle="gvStrippedDef">
+		<!-- this call-template must remain before the actual template is found in the tree -->
 		<xsl:call-template name="getStripped"/>
 	</xsl:variable>
 
@@ -26,6 +27,7 @@
 			<xsl:text>localB</xsl:text>
 		</xsl:variable>
 		<xsl:variable name="localAandB" select="concat($localA,$localB)"/>
+		<xsl:value-of select="$localAandB"/>
 	</xsl:template>
 
 	<xsl:template match="/">
@@ -36,7 +38,11 @@
 		<xsl:variable name="globalShadow">
 			<xsl:value-of select="foobar"/>
 		</xsl:variable>
+		<xsl:variable name="kungfu">
+	  		<xsl:text>I know kungfu...</xsl:text>
+	  	</xsl:variable>
 		<xsl:value-of select="concat($local1, $globalShadow)" handle="noref1"/>
+		<xsl:value-of select="$kungfu"/>
 	  </xsl:element>
 	</xsl:template>
 
@@ -86,6 +92,11 @@
 		</xsl:variable>
 		<xsl:value-of select="concat($tex,$mex,$tex-mex,$tex_mex,$mex_tex)" handle="varMatchA"/>
 		<xsl:value-of select="concat('$tex','$mex','$tex-mex','$tex','-mex','tex_mex','mex_tex','tex')" handle="varMatchB"/>
+		<xsl:call-template name="fred">
+			<xsl:with-param name="local1">
+				<xsl:value-of select="$tex"/>
+			</xsl:with-param>
+		</xsl:call-template>
 	</xsl:template>
 
 	<xsl:template match="div">
@@ -147,7 +158,31 @@
 	</xsl:template>
 
 	<xsl:template name="getStripped">
-		<xsl:text>stripped</xsl:text>
+		<xsl:text>Stripped</xsl:text>
+	</xsl:template>
+
+	<xsl:template name="replaceString">
+        <xsl:param name="text"/>
+        <xsl:param name="replace"/>
+        <xsl:param name="with"/>
+        <xsl:choose>
+            <xsl:when test="contains($text, $replace)">
+                <xsl:value-of select="substring-before($text, $replace)"/>
+                <xsl:value-of select="$with"/>
+                <xsl:call-template name="replaceString">
+                    <xsl:with-param name="text" select="substring-after($text,$replace)"/>
+                    <xsl:with-param name="replace" select="$replace"/>
+                    <xsl:with-param name="with" select="$with"/>
+                </xsl:call-template>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:value-of select="$text"/>
+            </xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+
+	<xsl:template name="notused_plsremove">
+		<xsl:call-template name="makeHead"/>
 	</xsl:template>
 
 </xsl:stylesheet>

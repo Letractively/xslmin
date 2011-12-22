@@ -2,6 +2,7 @@ package com.googlecode.monkeybrown.xslmin;
 
 import javax.xml.xpath.XPathConstants;
 
+import javax.xml.xpath.XPathExpressionException;
 import junit.framework.TestCase;
 
 import org.w3c.dom.Node;
@@ -11,6 +12,7 @@ public class XslGlobalVariableRenamerTest extends TestCase
 {
 	private static final String GLOBAL_VAR_XPATH = "//xsl:stylesheet/xsl:variable";
 	private boolean hasRun = false;
+
 
 	public void setUp()
 	{
@@ -23,7 +25,16 @@ public class XslGlobalVariableRenamerTest extends TestCase
 
 	private static NodeList getGlobalVariables()
 	{
-		return XslMinTestUtils.executeXpathOnMinifiedResult(GLOBAL_VAR_XPATH);
+		NodeList result = null;
+		try
+		{
+			result = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), GLOBAL_VAR_XPATH);
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
+		return result;
 	}
 
 	/**
@@ -31,10 +42,17 @@ public class XslGlobalVariableRenamerTest extends TestCase
 	 */
 	public void testAllStillExist()
 	{
-		String count = String.format("count(%s)", GLOBAL_VAR_XPATH);
-		double countBefore = (Double) XslMinTestUtils.executeXpathOnUnminifiedResult(count, XPathConstants.NUMBER);
-		double countAfter = (Double) XslMinTestUtils.executeXpathOnMinifiedResult(count, XPathConstants.NUMBER);
-		assertEquals(true, (countBefore > 0) && (countAfter == countBefore));
+		try
+		{
+			String count = String.format("count(%s)", GLOBAL_VAR_XPATH);
+			double countBefore = (Double) XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), count, XPathConstants.NUMBER);
+			double countAfter = (Double) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), count, XPathConstants.NUMBER);
+			assertEquals(true, (countBefore > 0) && (countAfter == countBefore));
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
 	}
 
 	/**
@@ -54,7 +72,8 @@ public class XslGlobalVariableRenamerTest extends TestCase
 		NodeList vars = getGlobalVariables();
 		for(int i=0; i<vars.getLength(); i++)
 		{
-			assertEquals(true, vars.item(i).getAttributes().getNamedItem("name").getNodeValue().length() == 1);
+			String newName = vars.item(i).getAttributes().getNamedItem("name").getNodeValue();
+			assertEquals("Should be a short name: " + newName, true, newName.length() == 1);
 		}
 	}
 
@@ -63,11 +82,18 @@ public class XslGlobalVariableRenamerTest extends TestCase
 	 */
 	public void testReferencesWereRenamed()
 	{
-		Node globalDef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:variable[@handle='def1']/@name", XPathConstants.NODE);
-		Node globalRef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:value-of[@handle='ref1']/@select", XPathConstants.NODE);
-		String varName = globalDef.getNodeValue();
-		String variableUse = globalRef.getNodeValue();
-		assertEquals(true, variableUse.endsWith("$" + varName + ")"));
+		try
+		{
+			Node globalDef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), "//xsl:variable[@handle='def1']/@name", XPathConstants.NODE);
+			Node globalRef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), "//xsl:value-of[@handle='ref1']/@select", XPathConstants.NODE);
+			String varName = globalDef.getNodeValue();
+			String variableUse = globalRef.getNodeValue();
+			assertEquals(true, variableUse.endsWith("$" + varName + ")"));
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
 	}
 
 	/**
@@ -75,25 +101,39 @@ public class XslGlobalVariableRenamerTest extends TestCase
 	 */
 	public void testReferencesWereRenamed2()
 	{
-		Node globalDef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:variable[@handle='gvStrippedDef']/@name", XPathConstants.NODE);
-		Node globalRef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:value-of[@handle='gvStrippedRef']/@select", XPathConstants.NODE);
-		String varName = globalDef.getNodeValue();
-		String variableUse = globalRef.getNodeValue();
-		assertEquals(true, variableUse.contains("normalize-space($" + varName + ")"));
+		try
+		{
+			Node globalDef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(),"//xsl:variable[@handle='gvStrippedDef']/@name", XPathConstants.NODE);
+			Node globalRef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(),"//xsl:value-of[@handle='gvStrippedRef']/@select", XPathConstants.NODE);
+			String varName = globalDef.getNodeValue();
+			String variableUse = globalRef.getNodeValue();
+			assertEquals(true, variableUse.contains("normalize-space($" + varName + ")"));
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
 	}
 
 	/**
-	 * Test that references to local variables which have the smae name as global variables were not renamed
+	 * Test that references to local variables which have the same name as global variables were not renamed
 	 * Note, this test could fail if the variables accidentally but legitimately get the same name. The test xsl file
 	 * should be crafted so this doesn't happen.
 	 */
 	public void testShadowsWereNotRenamed()
 	{
-		Node globalDef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:variable[@handle='def1']/@name", XPathConstants.NODE);
-		Node globalRef = (Node) XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:value-of[@handle='noref1']/@select", XPathConstants.NODE);
-		String varName = globalDef.getNodeValue();
-		String variableUse = globalRef.getNodeValue();
-		assertEquals(false, variableUse.endsWith("$" + varName + ")"));
+		try
+		{
+			Node globalDef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), "//xsl:variable[@handle='def1']/@name", XPathConstants.NODE);
+			Node globalRef = (Node) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), "//xsl:value-of[@handle='noref1']/@select", XPathConstants.NODE);
+			String varName = globalDef.getNodeValue();
+			String variableUse = globalRef.getNodeValue();
+			assertEquals(false, variableUse.endsWith("$" + varName + ")"));
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
 	}
 
 	/**
@@ -102,11 +142,18 @@ public class XslGlobalVariableRenamerTest extends TestCase
 	 */
 	public void testNoClash()
 	{
-		NodeList varNames = XslMinTestUtils.executeXpathOnMinifiedResult(GLOBAL_VAR_XPATH + "/@name");
-		NodeList paramNames = XslMinTestUtils.executeXpathOnMinifiedResult("//xsl:stylesheet/xsl:param/@name");
-		for(int i=0; i< Math.min(varNames.getLength(), paramNames.getLength()); i++)
+		try
 		{
-			assertFalse(varNames.item(i).getNodeValue().equals(paramNames.item(i).getNodeValue()));
+			NodeList varNames = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), GLOBAL_VAR_XPATH + "/@name");
+			NodeList paramNames = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), "//xsl:stylesheet/xsl:param/@name");
+			for(int i=0; i< Math.min(varNames.getLength(), paramNames.getLength()); i++)
+			{
+				assertFalse(varNames.item(i).getNodeValue().equals(paramNames.item(i).getNodeValue()));
+			}
+		}
+		catch (XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
 		}
 	}
 

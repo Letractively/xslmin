@@ -31,17 +31,12 @@ import org.xml.sax.SAXException;
  * Utilities to help with executing XPATH queries for xslmin
  * @author Rick Brown
  */
-public class XpathUtils
+public abstract class XpathUtils
 {
-	private Document doc;
-	private XPath xpath;
-	
-	public XpathUtils(String uri)
-	{
-		doc = loadXmlDoc(uri);
-	}
-	
-	public Document loadXmlDoc(InputStream stream)
+	/**
+	 * Loads an XML document from an InputStream
+	 */
+	public static Document loadXmlDoc(final InputStream stream)
 	{
 		Document result = null;
 		try
@@ -53,9 +48,6 @@ public class XpathUtils
 		    domFactory.setNamespaceAware(true);
 		    DocumentBuilder builder = domFactory.newDocumentBuilder();
 		    result = builder.parse(stream);
-		    XPathFactory factory = XPathFactory.newInstance();
-		    xpath = factory.newXPath();
-		    xpath.setNamespaceContext(new XslNamespaceContext());
 		}
 		catch (ParserConfigurationException e)
 		{
@@ -71,8 +63,12 @@ public class XpathUtils
 		}
 		return result;
 	}
-	
-	public Document loadXmlDoc(String uri)
+
+	/**
+	 * Loads an XML document from a File
+	 * @param uri The path the file.
+	 */
+	public static Document loadXmlDoc(final String uri)
 	{
 		Document result = null;
 		try
@@ -81,7 +77,7 @@ public class XpathUtils
 			if(file.exists())
 			{
 					result = loadXmlDoc(new FileInputStream(file));
-				
+
 			}
 			else
 			{
@@ -100,29 +96,70 @@ public class XpathUtils
 		}
 		return result;
 	}
-	
-	public NodeList executeQuery(String query) throws XPathExpressionException
+
+	/**
+	 * Executes an XPath query on the provided Document and returns the result.
+	 */
+	public static NodeList executeQuery(final Document doc, final String query) throws XPathExpressionException
 	{
 		return executeQuery(doc, query);
 	}
-	
-	public NodeList executeQuery(Node context, String query) throws XPathExpressionException
+
+	/**
+	 * Executes an XPath query in the context of the provided node and returns the result.
+	 */
+	public static NodeList executeQuery(final Node context, final String query) throws XPathExpressionException
 	{
 		return (NodeList) executeQuery(context, query, XPathConstants.NODESET);
 	}
-	
-	public Object executeQuery(Node context, String query, QName returnType) throws XPathExpressionException
+
+	/**
+	 * Executes an XPath query in the context of the provided node and returns the result as the specified return type.
+	 */
+	public static Object executeQuery(final Node context, final String query, final QName returnType) throws XPathExpressionException
 	{
+		XPath xpath = getXpath();
 		XPathExpression expr = xpath.compile(query);
 		return expr.evaluate(context, returnType);
 	}
-	
-	public void createMinifiedFile(String path)
+
+	/**
+	 * Serializes the provided DOM to the filesystem, passing the XML through the xslmin
+	 * transform on the way.
+	 * @param node The root node of the DOM (or a Document)
+	 * @param path The path to target file.
+	 */
+	public static void xmlToFile(final Node dom, final String path)
 	{
-		xmlToFile(doc, path);
+		try
+		{
+			Transformer transformer = getTransformer();
+			DOMSource source = new DOMSource(dom);
+			StreamResult result = new StreamResult(new File(path));
+			transformer.transform(source, result);
+		}
+		catch (TransformerException e)
+		{
+			e.printStackTrace();
+		}
 	}
-	
-	private Transformer getTransformer()
+
+	/**
+	 * @return An instance of XPath to use in queries.
+	 */
+	private static XPath getXpath()
+	{
+		XPath result;
+		XPathFactory factory = XPathFactory.newInstance();
+		result = factory.newXPath();
+		result.setNamespaceContext(new XslNamespaceContext());
+		return result;
+	}
+
+	/**
+	 * @return An instance of Transformer configured with xslmin.xsl ready to transform a DOM
+	 */
+	private static Transformer getTransformer()
 	{
 		Transformer transformer;
 		try
@@ -134,23 +171,9 @@ public class XpathUtils
 		catch (TransformerConfigurationException e)
 		{
 			transformer = null;
+			System.err.println("Could not load resource xslmin.xsl");
 			e.printStackTrace();
 		}
 		return transformer;
-	}
-	
-	private void xmlToFile(Node node, String path)
-	{
-		try
-		{
-			Transformer transformer = getTransformer();
-		    DOMSource source = new DOMSource(node);
-		    StreamResult result = new StreamResult(new File(path));
-		    transformer.transform(source, result);
-		}
-		catch (TransformerException e)
-		{
-			e.printStackTrace();
-		} 
 	}
 }

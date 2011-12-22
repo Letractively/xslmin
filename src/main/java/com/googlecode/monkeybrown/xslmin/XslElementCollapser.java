@@ -9,16 +9,16 @@ import org.w3c.dom.NodeList;
 
 /**
  * Collapses xsl:element and xsl:attribute elements to their short forms.
- * 
+ *
  * <xsl:element name="foo"/> gets rewritten to <foo/>
- * 
+ *
  * <xsl:element name="foo">
  * 	<xsl:attribute name="bar" select="$foobar"/>
  * </xsl:element>
- * 
+ *
  * gets rewritten to: <foo bar="{$foobar}"/>
- * 
- * This should not cause problems with the correct output type set, but just in case, 
+ *
+ * This should not cause problems with the correct output type set, but just in case,
  * the following HTML Elements are not allowed to have an end tag:
 
 	AREA:	http://www.w3.org/TR/html401/struct/objects.html#edef-AREA
@@ -31,42 +31,54 @@ import org.w3c.dom.NodeList;
 	LINK:	http://www.w3.org/TR/html401/struct/links.html#edef-LINK
 	META:	http://www.w3.org/TR/html401/struct/global.html#edef-META
 	PARAM:	http://www.w3.org/TR/html401/struct/objects.html#edef-PARAM
+ *
+ * TODO rewrite to benefit from the new treewalker "way of the samurai"
  * 
  * @author Rick Brown
  */
 public class XslElementCollapser
 {
-	public static void rewriteElements() throws XPathExpressionException
+	public static void rewriteElements(Node node) throws XPathExpressionException
 	{
-		//select all xsl:element elements which have a name attribute (and no others) and the name attribute does not contain a variable or param
-		NodeList nodes = XslMin.xpathUtils.executeQuery("//xsl:element[@name and not(@namespace) and not(@use-attribute-sets) and not(contains(@name, '{'))]");
-	    for(int i = 0, len = nodes.getLength(); i < len; i++) 
-	    {
-	    	Node next = nodes.item(i);
-	    	Document doc = next.getOwnerDocument(); 
-    		String elementName = next.getAttributes().getNamedItem("name").getNodeValue();
-    		Element element = doc.createElement(elementName);
-    		collapseAttributes(next, element);
-    		while(next.hasChildNodes())
-    		{
-    			Node nextChild = next.getFirstChild();
-    			if(nextChild.getNodeType() == Node.ELEMENT_NODE)
-    			{
-    				element.appendChild(nextChild);
-    			}
-    			else
-    			{
-    				next.removeChild(nextChild);
-    			}
-    		}
-    		next.getParentNode().replaceChild(element, next);
-	    }
-	    //System.out.println(String.format("Rewrote %d xsl:elements", nodes.getLength()));
+		NodeList nodes = XpathUtils.executeQuery(node, "//xsl:element[@name and not(@namespace) and not(@use-attribute-sets) and not(contains(@name, '{'))]");
+		rewriteElements(nodes);
 	}
-	
+
+	/**
+	 * Does the element collapsing.
+	 */
+	private static void rewriteElements(NodeList nodes) throws XPathExpressionException
+	{
+		for(int i = 0, len = nodes.getLength(); i < len; i++)
+	{
+		Node next = nodes.item(i);
+		Document doc = next.getOwnerDocument();
+		String elementName = next.getAttributes().getNamedItem("name").getNodeValue();
+		Element element = doc.createElement(elementName);
+		collapseAttributes(next, element);
+		while(next.hasChildNodes())
+		{
+			Node nextChild = next.getFirstChild();
+			if(nextChild.getNodeType() == Node.ELEMENT_NODE)
+			{
+				element.appendChild(nextChild);
+			}
+			else
+			{
+				next.removeChild(nextChild);
+			}
+		}
+		next.getParentNode().replaceChild(element, next);
+	}
+	//System.out.println(String.format("Rewrote %d xsl:elements", nodes.getLength()));
+	}
+
+	/**
+	 * Does the attribute collapsing.
+	 */
 	private static void collapseAttributes(Node oldNode, Element newNode) throws XPathExpressionException
 	{
-		NodeList attrElements = XslMin.xpathUtils.executeQuery(oldNode, "xsl:attribute[count(text()|./xsl:text|./xsl:value-of)=count(node())]");
+		NodeList attrElements = XpathUtils.executeQuery(oldNode, "xsl:attribute[count(text()|./xsl:text|./xsl:value-of)=count(node())]");
 		for(int i=0; i<attrElements.getLength(); i++)//for each xsl:attribute element
 		{
 			Node next = oldNode.removeChild(attrElements.item(i));
@@ -84,14 +96,14 @@ public class XslElementCollapser
 						attributeValue.append(nextVal);
 					}
 				}
-				else if(kid.getNodeName() == "xsl:text")
+				else if(kid.getNodeName().equals("xsl:text"))
 				{
 					attributeValue.append(kid.getTextContent());
 				}
-				else if(kid.getNodeName() == "xsl:value-of")
+				else if(kid.getNodeName().equals("xsl:value-of"))
 				{
 					String valSelect = kid.getAttributes().getNamedItem("select").getNodeValue();
-					/* 
+					/*
 					 * useful regexps:
 					 * "^(['|\"])(.+)\\1$" string literal
 					 * "^\\{?\\$[^}]+\\}?$" variable reference (with or without curly braces)
