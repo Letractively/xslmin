@@ -87,7 +87,7 @@ public class XslMin
 		System.out.println("Renaming took " + (end-start) + "ms");
 
 		start = System.currentTimeMillis();
-		XslElementCollapser.rewriteElements(newDocRoot);
+		stylesheet.collapseElements();
 		end = System.currentTimeMillis();
 		System.out.println("Collapsing took " + (end-start) + "ms");
 

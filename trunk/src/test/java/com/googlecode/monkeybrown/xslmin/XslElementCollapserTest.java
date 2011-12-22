@@ -29,6 +29,8 @@ import org.w3c.dom.NodeList;
 public class XslElementCollapserTest extends TestCase
 {
 	private boolean hasRun = false;
+
+	@Override
 	public void setUp()
 	{
 		if(!hasRun)
@@ -108,16 +110,15 @@ public class XslElementCollapserTest extends TestCase
 			for(int i=0; i<after.getChildNodes().getLength(); i++)
 			{
 				Node next = after.getChildNodes().item(i);
-				if(next.getNodeName() == "xsl:attribute" && next.getAttributes().getNamedItem("name") != null
-								&& next.getAttributes().getNamedItem("name").getNodeValue().equals("noCollapse1"))
+				if(next.getNodeName().equals("xsl:attribute") && next.getAttributes().getNamedItem("name") != null && next.getAttributes().getNamedItem("name").getNodeValue().equals("noCollapse1"))
 				{
 					foundAttrWithNestedIf = true;
 				}
-				else if(next.getNodeName() == "xsl:if")
+				else if(next.getNodeName().equals("xsl:if"))
 				{
 					for(int j=0; j<next.getChildNodes().getLength(); j++)
 					{
-						if(next.getChildNodes().item(j).getNodeName() == "xsl:attribute" && next.getChildNodes().item(j).getAttributes().getNamedItem("name") != null
+						if(next.getChildNodes().item(j).getNodeName().equals("xsl:attribute") && next.getChildNodes().item(j).getAttributes().getNamedItem("name") != null
 										&& next.getChildNodes().item(j).getAttributes().getNamedItem("name").getNodeValue().equals("button"))
 						{
 							foundAttrNestedInIf = true;
