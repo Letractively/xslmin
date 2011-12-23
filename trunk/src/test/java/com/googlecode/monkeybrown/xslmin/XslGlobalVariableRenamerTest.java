@@ -13,7 +13,7 @@ public class XslGlobalVariableRenamerTest extends TestCase
 	private static final String GLOBAL_VAR_XPATH = "//xsl:stylesheet/xsl:variable";
 	private boolean hasRun = false;
 
-
+	@Override
 	public void setUp()
 	{
 		if(!hasRun)

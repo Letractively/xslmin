@@ -7,7 +7,6 @@ import junit.framework.TestCase;
 import javax.xml.xpath.XPathConstants;
 
 import javax.xml.xpath.XPathExpressionException;
-import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -21,7 +20,9 @@ public class XslNamedTemplateRenamerTest extends TestCase
 {
 	private boolean hasRun = false;
 	private static final String ALL_TEMPLATE_XPATH = "//xsl:template";
+	private static final String ALL_UNUSED_TEMPLATE_XPATH = ALL_TEMPLATE_XPATH + "[@handle='notused_plsremove']";
 
+	@Override
 	public void setUp()
 	{
 		if(!hasRun)
@@ -32,21 +33,50 @@ public class XslNamedTemplateRenamerTest extends TestCase
 	}
 
 	/**
-	 * Test that the templates still exist
+	 * Test the number of templates in the minified result is what we expect
 	 */
-	public void testAllStillExist()
+	public void testTemplateCount()
+	{
+		testTemplateCountHelper(false);
+	}
+
+	/**
+	 * Test the number of templates in the minified result is what we expect
+	 */
+	public void testTemplateCountStripped()
+	{
+		testTemplateCountHelper(true);
+	}
+
+	/**
+	 * Test the number of templates in the minified result is what we expect
+	 */
+	private void testTemplateCountHelper(boolean useStripped)
 	{
 		String count = String.format("count(%s)", ALL_TEMPLATE_XPATH);
 		try
 		{
-			double countBefore = (Double) XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), count, XPathConstants.NUMBER);
-			double countAfter = (Double) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), count, XPathConstants.NUMBER);
-			double expected = countBefore;
-			if(!XslMinTestUtils.preserve)
+			double countAfter, expected, countBefore = (Double) XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), count, XPathConstants.NUMBER);
+			Node resultXsl, sourceXsl = XslMinTestUtils.getSourceXsl();
+			if(useStripped)
 			{
-				expected -= XslMinTestUtils.UNUSED_TEMPLATES;
+				resultXsl = XslMinTestUtils.getResultStrippedXsl();
 			}
-			assertEquals(true, (countBefore > 0) && (countAfter == expected));
+			else
+			{
+				resultXsl = XslMinTestUtils.getResultXsl();
+			}
+			countAfter = (Double) XpathUtils.executeQuery(resultXsl, count, XPathConstants.NUMBER);
+			expected = countBefore;
+			if(useStripped)
+			{
+				NodeList unused = getUnusedTemplates(sourceXsl);
+				if(unused != null)
+				{
+					expected -= unused.getLength();
+				}
+			}
+			assertEquals("(" + countBefore + " > 0) && (" + countAfter + " == " + expected + ")", true, (countBefore > 0) && (countAfter == expected));
 		}
 		catch(XPathExpressionException ex)
 		{
@@ -56,12 +86,31 @@ public class XslNamedTemplateRenamerTest extends TestCase
 
 	public void testTemplates()
 	{
+		testTemplatesHelper(false);
+	}
+
+	public void testTemplatesStripped()
+	{
+		testTemplatesHelper(true);
+	}
+
+	private void testTemplatesHelper(boolean useStripped)
+	{
 		try
 		{
-			NodeList beforeTemplates = XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), ALL_TEMPLATE_XPATH);
-			NodeList afterTemplates = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), ALL_TEMPLATE_XPATH);
+			Node resultXsl, sourceXsl = XslMinTestUtils.getSourceXsl();
+			if(useStripped)
+			{
+				resultXsl = XslMinTestUtils.getResultStrippedXsl();
+			}
+			else
+			{
+				resultXsl = XslMinTestUtils.getResultXsl();
+			}
+			NodeList beforeTemplates = XpathUtils.executeQuery(sourceXsl, ALL_TEMPLATE_XPATH);
+			NodeList afterTemplates = XpathUtils.executeQuery(resultXsl, ALL_TEMPLATE_XPATH);
 			assertTrue("Nothing to test!", beforeTemplates.getLength() > 0);
-			for(int i=0; i<beforeTemplates.getLength(); i++)
+			for(int i=0; i<afterTemplates.getLength(); i++)
 			{
 				Node beforeTemplate = beforeTemplates.item(i);
 				Node afterTemplate = afterTemplates.item(i);
@@ -73,12 +122,22 @@ public class XslNamedTemplateRenamerTest extends TestCase
 					boolean hasMatch = (beforeTemplate.getAttributes().getNamedItem("match") != null);
 					System.out.println("Checking !(\"" + beforeName + "\".equals(\"" + aftername + "\"))" );
 					assertFalse("named template '" + beforeName + "' should be renamed", beforeName.equals(aftername));
-					NodeList beforeCallsToTemplate = getCallTemplates(beforeName, false);
-					if(beforeCallsToTemplate.getLength() > 0)
+					NodeList beforeCallsToTemplate = getCallTemplates(beforeName, sourceXsl);
+					int expected = beforeCallsToTemplate.getLength();
+					if(expected > 0)
 					{
 						System.out.println("Checking calls to template: " + beforeName);
-						NodeList afterCallsToTemplate = getCallTemplates(aftername, true);
-						assertEquals(beforeCallsToTemplate.getLength(), afterCallsToTemplate.getLength());
+						NodeList afterCallsToTemplate = getCallTemplates(aftername, resultXsl);
+						if(useStripped)
+						{
+							NodeList unused = getUnusedTemplateCalls(sourceXsl, beforeName);
+							System.out.println("UNUSED: " + unused.getLength());
+							if(unused != null)
+							{
+								expected -= unused.getLength();
+							}
+						}
+						assertEquals(expected, afterCallsToTemplate.getLength());
 						List<String> beforeParamNames = getParams(beforeTemplate);
 						for(int j=0; j<afterCallsToTemplate.getLength(); j++)
 						{
@@ -114,6 +173,46 @@ public class XslNamedTemplateRenamerTest extends TestCase
 		{
 			fail(ex.getMessage());
 		}
+	}
+
+	/*
+	 * These are really just calls that are nested inside an unused template
+	 */
+	private NodeList getUnusedTemplateCalls(Node xslDoc, String templateName)
+	{
+		NodeList result = null;
+		try
+		{
+			String query;
+			if(templateName != null)
+			{
+				query = "//xsl:template[@handle='notused_plsremove']//xsl:call-template[@name='" + templateName + "']";
+			}
+			else
+			{
+				query = "//xsl:template[@handle='notused_plsremove']//xsl:call-template";
+			}
+			result = XpathUtils.executeQuery(xslDoc, query);
+		}
+		catch(XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
+		return result;
+	}
+
+	private NodeList getUnusedTemplates(Node xslDoc)
+	{
+		NodeList result = null;
+		try
+		{
+			result = XpathUtils.executeQuery(xslDoc, ALL_UNUSED_TEMPLATE_XPATH);
+		}
+		catch(XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
+		return result;
 	}
 
 	private List<String> getParams(Node template)
@@ -154,20 +253,14 @@ public class XslNamedTemplateRenamerTest extends TestCase
 		return result;
 	}
 
-	private NodeList getCallTemplates(String templateName, boolean minified)
+	private NodeList getCallTemplates(String templateName, Node xslDoc)
 	{
 		String query = "//xsl:call-template[@name='" + templateName + "']";
 		NodeList result = null;
 		try
 		{
-			if(minified)
-			{
-				result = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), query);
-			}
-			else
-			{
-				result = XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), query);
-			}
+
+			result = XpathUtils.executeQuery(xslDoc, query);
 		}
 		catch(XPathExpressionException ex)
 		{

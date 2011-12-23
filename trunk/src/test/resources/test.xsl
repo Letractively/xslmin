@@ -181,8 +181,41 @@
         </xsl:choose>
     </xsl:template>
 
-	<xsl:template name="notused_plsremove">
+	<xsl:template name="notUsedButHasMatch" match="/fu/kung/test/icicles">
+		<!--
+			This template should not be stripped because it has a match attribute.
+			DO NOT add any calls to this template or you invalidate the test.
+		-->
+		<xsl:variable name="varUnusedFuKungTestIcicles" handle="notused_plsremove">
+			<xsl:text>This will be stripped because it is unused</xsl:text>
+		</xsl:variable>
+		<xsl:element name="car">
+			<xsl:attribute name="fu">kung</xsl:attribute>
+			<xsl:attribute name="def">
+				<xsl:value-of select="$globalShadow"/>
+			</xsl:attribute>
+		</xsl:element>
+	</xsl:template>
+
+	<!--
+		It's lame I know, but to make the tests easier to write please ensure the templates
+		that will be stripped (i.e. the unused templates) occur after any other templates.
+	-->
+
+	<xsl:template name="notused_plsremove" handle="notused_plsremove">
 		<xsl:call-template name="makeHead"/>
+	</xsl:template>
+
+	<xsl:template name="notused_plsremove2" handle="notused_plsremove">
+		<xsl:variable name="varRemoved2a" handle="notused_plsremove">
+			<xsl:text>This will be removed when the parent template is removed</xsl:text>
+		</xsl:variable>
+		<xsl:element name="car">
+			<xsl:attribute name="fu">kung</xsl:attribute>
+			<xsl:attribute name="def">
+				<xsl:value-of select="$varRemoved2a"/>
+			</xsl:attribute>
+		</xsl:element>
 	</xsl:template>
 
 </xsl:stylesheet>

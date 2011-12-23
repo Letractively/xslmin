@@ -11,8 +11,11 @@ import org.w3c.dom.NodeList;
 public class XslLocalVariableRenamerTest extends TestCase
 {
 	private static final String LOCAL_VAR_XPATH = "//xsl:template/descendant::xsl:variable";
+	private static final String ALL_UNUSED_VAR_XPATH = LOCAL_VAR_XPATH + "[@handle='notused_plsremove']";
 
 	private boolean hasRun = false;
+
+	@Override
 	public void setUp()
 	{
 		if(!hasRun)
@@ -22,12 +25,26 @@ public class XslLocalVariableRenamerTest extends TestCase
 		}
 	}
 
-	private static NodeList getLocalVariables()
+	private static NodeList getUnusedVariables(Node xslDoc)
 	{
 		NodeList result = null;
 		try
 		{
-			result = XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), LOCAL_VAR_XPATH);
+			result = XpathUtils.executeQuery(xslDoc, ALL_UNUSED_VAR_XPATH);
+		}
+		catch(XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
+		return result;
+	}
+
+	private static NodeList getLocalVariables(Node xslDoc)
+	{
+		NodeList result = null;
+		try
+		{
+			result = XpathUtils.executeQuery(xslDoc, LOCAL_VAR_XPATH);
 		}
 		catch(XPathExpressionException ex)
 		{
@@ -37,16 +54,35 @@ public class XslLocalVariableRenamerTest extends TestCase
 	}
 
 	/**
-	 * Test that the local variables still exist
+	 * Test the number of variables in the minified result is what we expect
 	 */
-	public void testAllStillExist()
+	private void testVariableCountHelper(boolean useStripped)
 	{
+		String count = String.format("count(%s)", LOCAL_VAR_XPATH);
 		try
 		{
-			String count = String.format("count(%s)", LOCAL_VAR_XPATH);
-			double countBefore = (Double) XpathUtils.executeQuery(XslMinTestUtils.getSourceXsl(), count, XPathConstants.NUMBER);
-			double countAfter = (Double) XpathUtils.executeQuery(XslMinTestUtils.getResultXsl(), count, XPathConstants.NUMBER);
-			assertEquals(true, (countBefore > 0) && (countAfter == countBefore));
+			Node resultXsl, sourceXsl = XslMinTestUtils.getSourceXsl();
+			double countAfter, expected, countBefore = (Double) XpathUtils.executeQuery(sourceXsl, count, XPathConstants.NUMBER);
+			if(useStripped)
+			{
+				resultXsl = XslMinTestUtils.getResultStrippedXsl();
+			}
+			else
+			{
+				resultXsl = XslMinTestUtils.getResultXsl();
+			}
+			countAfter = (Double) XpathUtils.executeQuery(resultXsl, count, XPathConstants.NUMBER);
+			expected = countBefore;
+			if(useStripped)
+			{
+				NodeList unused = getUnusedVariables(sourceXsl);
+				//System.out.println("UNUSED: " + unused.getLength());
+				if(unused != null)
+				{
+					expected -= unused.getLength();
+				}
+			}
+			assertEquals("(" + countBefore + " > 0) && (" + countAfter + " == " + expected + ")", true, (countBefore > 0) && (countAfter == expected));
 		}
 		catch(XPathExpressionException ex)
 		{
@@ -55,11 +91,27 @@ public class XslLocalVariableRenamerTest extends TestCase
 	}
 
 	/**
+	 * Test the number of variables in the minified result is what we expect
+	 */
+	public void testVariableCount()
+	{
+		testVariableCountHelper(false);
+	}
+
+	/**
+	 * Test the number of variables in the minified result is what we expect
+	 */
+	public void testVariableCountStripped()
+	{
+		testVariableCountHelper(true);
+	}
+
+	/**
 	 * Test that the local variables have the same value they did before minification
 	 */
 	public void testValuesUntouched()
 	{
-		NodeList vars = getLocalVariables();
+		NodeList vars = getLocalVariables(XslMinTestUtils.getResultXsl());
 		assertEquals("localB", vars.item(0).getFirstChild().getTextContent());
 	}
 
@@ -68,7 +120,7 @@ public class XslLocalVariableRenamerTest extends TestCase
 	 */
 	public void testDefinitionsWereRenamed()
 	{
-		NodeList vars = getLocalVariables();
+		NodeList vars = getLocalVariables(XslMinTestUtils.getResultXsl());
 		for(int i=0; i<vars.getLength(); i++)
 		{
 			assertEquals(true, vars.item(i).getAttributes().getNamedItem("name").getNodeValue().length() == 1);
