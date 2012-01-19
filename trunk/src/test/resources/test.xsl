@@ -151,6 +151,25 @@
 		</xsl:element>
 	</xsl:template>
 
+	<xsl:template match="bottom">
+		<xsl:param name="myTable"/>
+		<xsl:call-template name="getStripped">
+			<!--
+				This call must occur before the apply-tremplates below.
+				Must be to a template that contains a parameter with the same
+				name as the with-param in apply-templates.
+			-->
+			<xsl:with-param name="myTable" select="$myTable"/>
+		</xsl:call-template>
+		<xsl:choose>
+			<xsl:when test="*">
+				<xsl:apply-templates>
+					<xsl:with-param name="myTable" select="$myTable" handle="norename"/><!-- the name should never be renamed -->
+				</xsl:apply-templates>
+			</xsl:when>
+		</xsl:choose>
+	</xsl:template>
+
 	<xsl:template name="makeHead">
 			<xsl:element name="script">
 				<xsl:value-of handle="gvStrippedRef" select="concat('defaultXslUrl:&#34;', normalize-space($stripped), '&#34;,&#xA;')"/>
@@ -158,6 +177,7 @@
 	</xsl:template>
 
 	<xsl:template name="getStripped">
+		<xsl:param name="myTable"/><!-- Don't rename this -->
 		<xsl:text>Stripped</xsl:text>
 	</xsl:template>
 

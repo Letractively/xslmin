@@ -29,7 +29,6 @@ import org.w3c.dom.traversal.TreeWalker;
  */
 public class Stylesheet extends Scope
 {
-	private Scope callingTemplate = null;
 	private static final String REF_TO_VAR_RE =  "\\$(\\b['\\-\\._\\w]+\\b)";
 	private final Pattern refToVarRe;
 	private Map<String, Scope> templates = new HashMap<String, Scope>();
@@ -314,18 +313,32 @@ public class Stylesheet extends Scope
 			 * Note, it is not possible to find this sort of construct: <xsl:call-template name="$somevar"/>
 			 */
 			String name = getNodeName(current);
-			this.callingTemplate = this.getTemplate(name);
-			if(this.callingTemplate == null)
+			Scope callingTemplate = this.getTemplate(name);
+			if(callingTemplate == null)
 			{
-				this.callingTemplate = addTemplate(null, name);
+				callingTemplate = addTemplate(null, name);
 			}
-			this.callingTemplate.addReference(current.getAttributes().getNamedItem("name"));
+			callingTemplate.addReference(current.getAttributes().getNamedItem("name"));
 		}
 		else if(tagName.equals("xsl:with-param"))
 		{
+			/*
+			 * Note, xsl:with-param is NOT always nested inside an xsl:call-template
+			 * For example this is legal:
+				<xsl:apply-templates>
+					<xsl:with-param name="myTable" select="$myTable"/>
+				</xsl:apply-templates>
+			 * This can't be renamed and should be left alone.
+			 */
 			Node paramNameAttr = current.getAttributes().getNamedItem("name");
 			String paramName = paramNameAttr.getNodeValue();
-			this.callingTemplate.addReferenceToScoped(paramName, paramNameAttr);
+			Element callTemplate = XpathUtils.getAncestorOrSelf((Element)current, "xsl:call-template", "xsl:apply-templates");
+			if(callTemplate != null)
+			{
+				String name = getNodeName(callTemplate);
+				Scope callingTemplate = this.getTemplate(name);
+				callingTemplate.addReferenceToScoped(paramName, paramNameAttr);
+			}
 		}
 		else if(tagName.equals("xsl:variable"))
 		{
