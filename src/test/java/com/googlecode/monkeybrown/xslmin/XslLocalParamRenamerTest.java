@@ -5,6 +5,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import junit.framework.TestCase;
 
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -96,6 +97,8 @@ public class XslLocalParamRenamerTest extends TestCase
 		}
 	}
 
+
+
 	/**
 	 * Test that local variables and local params are not renamed to the same name in the same scope
 	 * PRECONDITION: both the local variable renaming AND the local parameter renaming must have been executed for this test to prove anything
@@ -112,5 +115,34 @@ public class XslLocalParamRenamerTest extends TestCase
 		{
 			fail(ex.getMessage());
 		}
+	}
+
+	public void testExcludedWithParamsNotRenamed()
+	{
+		NodeList beforeExcluded = getExplicitNoRenameWithParams(XslMinTestUtils.getSourceXsl());
+		NodeList afterExcluded = getExplicitNoRenameWithParams(XslMinTestUtils.getResultXsl());
+		assertTrue("Nothing to test", beforeExcluded.getLength() > 0);
+		for(int i=0; i<beforeExcluded.getLength(); i++)
+		{
+			Element before = (Element) beforeExcluded.item(i);
+			String beforeName = before.getAttribute("name");
+			Element after = (Element) afterExcluded.item(i);
+			String afterName = after.getAttribute("name");
+			assertEquals(beforeName, afterName);
+		}
+	}
+
+	private NodeList getExplicitNoRenameWithParams(Node xslDoc)
+	{
+		NodeList result = null;
+		try
+		{
+			result = XpathUtils.executeQuery(xslDoc, "//xsl:with-param[@handle='norename']");
+		}
+		catch(XPathExpressionException ex)
+		{
+			fail(ex.getMessage());
+		}
+		return result;
 	}
 }

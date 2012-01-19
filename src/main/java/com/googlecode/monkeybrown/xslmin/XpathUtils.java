@@ -23,16 +23,53 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Utilities to help with executing XPATH queries for xslmin
+ * Utilities to help with executing XPATH queries (and other stuff) for xslmin
  * @author Rick Brown
  */
 public abstract class XpathUtils
 {
+	/**
+	 * @param element The element whose ancestry we will check
+	 * @param tagName The tagName of the element we are searching for in the ancestry
+	 * @param limitTagName Stop searching if we hit this limit
+	 * @return The first matching element, if found
+	 */
+	public static Element getAncestorOrSelf(final Element element, final String tagName, final String limitTagName)
+	{
+		Element result = null;
+		Element next = element;
+		String currentTagName;
+		do
+		{
+			currentTagName = next.getTagName();
+			if(currentTagName.equals(tagName))
+			{
+				result = next;
+				break;
+			}
+			else
+			{
+				Node parent = next.getParentNode();
+				if(parent != null && parent.getNodeType() == Node.ELEMENT_NODE)
+				{
+					next = (Element)parent;
+				}
+				else
+				{
+					break;
+				}
+			}
+		}
+		while(next != null && (limitTagName == null || !tagName.equals(limitTagName)));
+		return result;
+	}
+
 	/**
 	 * Loads an XML document from an InputStream
 	 */
