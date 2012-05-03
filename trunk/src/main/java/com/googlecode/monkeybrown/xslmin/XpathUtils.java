@@ -139,7 +139,7 @@ public abstract class XpathUtils
 	 */
 	public static NodeList executeQuery(final Document doc, final String query) throws XPathExpressionException
 	{
-		return executeQuery(doc, query);
+		return executeQuery((Node)doc, query);
 	}
 
 	/**

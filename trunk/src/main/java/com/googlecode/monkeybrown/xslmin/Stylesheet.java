@@ -18,7 +18,7 @@ import org.w3c.dom.traversal.NodeFilter;
 import org.w3c.dom.traversal.TreeWalker;
 
 /**
- * Represents an xsl:stylesheet
+ * Represents an xsl:stylesheet.
  *
  * Knows about all of the parts of the stylesheet that need renaming, including:
  * xsl:template
@@ -166,7 +166,7 @@ public class Stylesheet extends Scope
 	 */
 	private Scope addTemplate(final Node template, final String name)
 	{
-		Scope result = new Scope(template);
+		Scope result = new Scope(template, super.nameGenerator);
 		templates.put(name, result);
 		return result;
 	}

@@ -131,10 +131,10 @@ public class XslNamedTemplateRenamerTest extends TestCase
 						if(useStripped)
 						{
 							NodeList unused = getUnusedTemplateCalls(sourceXsl, beforeName);
-							System.out.println("UNUSED: " + unused.getLength());
 							if(unused != null)
 							{
 								expected -= unused.getLength();
+								System.out.println("UNUSED: " + unused.getLength());
 							}
 						}
 						assertEquals(expected, afterCallsToTemplate.getLength());

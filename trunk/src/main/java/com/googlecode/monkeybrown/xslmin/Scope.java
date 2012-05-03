@@ -22,7 +22,7 @@ import org.w3c.dom.Node;
 public class Scope extends NamedNode
 {
 	private Map<String, NamedNode> scoped = new HashMap<String, NamedNode>();
-	private NameGenerator nameGenerator;
+	NameGenerator nameGenerator;
 	boolean dontRenameParams = false; //if true xsl:param elements will not be renamed in this scope.
 
 	/**
@@ -32,8 +32,20 @@ public class Scope extends NamedNode
 	 */
 	public Scope(final Node node)
 	{
+		this(node, new NameGenerator());
+	}
+
+	/**
+	 * Creates a new instance of Scope which will use the provided NameGenerator
+	 * to rename nodes with instead of creating a fresh one.
+	 *
+	 * @param node The underlying node which this class encapsulates.
+	 * @param nameGenerator The NameGenerator this Scope should use.
+	 */
+	public Scope(final Node node,final NameGenerator nameGenerator)
+	{
 		super(node);
-		nameGenerator = new NameGenerator();
+		this.nameGenerator = nameGenerator;
 	}
 
 	/**
