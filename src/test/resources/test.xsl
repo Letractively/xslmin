@@ -43,6 +43,7 @@
 	  	</xsl:variable>
 		<xsl:value-of select="concat($local1, $globalShadow)" handle="noref1"/>
 		<xsl:value-of select="$kungfu"/>
+		<xsl:value-of select="$stripped"/>
 	  </xsl:element>
 	</xsl:template>
 

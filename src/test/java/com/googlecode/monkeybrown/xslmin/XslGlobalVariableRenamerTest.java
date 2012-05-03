@@ -23,7 +23,7 @@ public class XslGlobalVariableRenamerTest extends TestCase
 		}
 	}
 
-	private static NodeList getGlobalVariables()
+	public static NodeList getGlobalVariables()
 	{
 		NodeList result = null;
 		try

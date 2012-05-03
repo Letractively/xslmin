@@ -1,5 +1,7 @@
 package com.googlecode.monkeybrown.xslmin;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.xml.xpath.XPathConstants;
 
 import javax.xml.xpath.XPathExpressionException;
@@ -215,5 +217,36 @@ public class XslLocalVariableRenamerTest extends TestCase
 		{
 			fail(ex.getMessage());
 		}
+	}
+
+	/**
+	 * This test checks that no local variables have the same name as global variables.
+	 * Actually this is not really a requirement - it is possible for a local variable to
+	 * have the same name as a global variable.
+	 *
+	 * The problem is that it is HARD to ensure that a template does not reference a global
+	 * AND a local variable which have been renamed to the same name. The simplest way to keep
+	 * this from happening is to use the same NameGenerator instance for all variables so none
+	 * ever clash. This results in a slightly larger result file but should be very safe.
+	 *
+	 */
+	public void testNoClashWithGlobalVariables()
+	{
+		NodeList globals = XslGlobalVariableRenamerTest.getGlobalVariables();
+		NodeList locals = getLocalVariables(XslMinTestUtils.getResultXsl());
+		List<String> clashes = new ArrayList<String>();
+		for(int i=0; i<locals.getLength(); i++)
+		{
+			String localName = locals.item(i).getAttributes().getNamedItem("name").getNodeValue();
+			for(int j=0; j<globals.getLength(); j++)
+			{
+				String globalName = globals.item(j).getAttributes().getNamedItem("name").getNodeValue();
+				if(globalName.equals(localName))
+				{
+					clashes.add(localName);
+				}
+			}
+		}
+		assertTrue("The following variables clashed: " + clashes.toString(), clashes.size() == 0);
 	}
 }
