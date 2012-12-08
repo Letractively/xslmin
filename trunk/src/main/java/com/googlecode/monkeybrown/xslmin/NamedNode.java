@@ -6,6 +6,7 @@ package com.googlecode.monkeybrown.xslmin;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 /**
@@ -82,13 +83,36 @@ public class NamedNode
 	 */
 	public void setNode(final Node node)
 	{
+		//TODO oh boy, the whole thing needs to be rewritten to use Element instead of node
+		Element element = (Element) node;
+		
 		if(this.node == null)
 		{
-			this.node = node;
+			this.node = element;
 		}
 		else
 		{
-			throw new IllegalStateException("The node should not be re-set");
+			Element thisElement = (Element) this.node;
+			if(thisElement.getTagName().equals(element.getTagName()))
+			{
+				throw new IllegalStateException("Variable redeclared in the same template: " + element.getAttribute("name"));
+				/* This doesn't really work. Sigh, should have used sax parser instead of treewalker.
+				if(thisElement.getParentNode() == element.getParentNode())
+				{
+					System.out.println("ERROR: Duplicate variable declarations " + element.getAttribute("name"));
+				}
+				else
+				{
+					//still dodgy in XSLT 1.0 but we'll try anyway
+					System.out.println("WARN: Duplicate variable declarations " + element.getAttribute("name"));
+					this.addReference(element.getAttributeNode("name"));//TODO this will throw out the reference count
+				}
+				*/
+			}
+			else
+			{
+				throw new IllegalStateException("The node should not be re-set " + element.getAttribute("name"));
+			}
 		}
 	}
 
