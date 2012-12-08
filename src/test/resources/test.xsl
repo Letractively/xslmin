@@ -59,7 +59,28 @@
 			<xsl:value-of select="concat($local1, $globalShadow)" handle="ref1"/>
 		</div>
 	</xsl:template>
-
+	<!-- Uncomment this when it can handle narrower variable scope.
+	<xsl:template name="tooManyVariables" match="stupidhead">
+			<xsl:variable name="notDuplicate">
+					<xsl:text>nodup</xsl:text>
+			</xsl:variable>
+			<xsl:if test="foo=bar">
+				<xsl:variable name="duplicate">
+						<xsl:text>first def</xsl:text>
+				</xsl:variable>
+				<xsl:value-of select="$duplicate"/>
+			</xsl:if>
+			<xsl:if test="bar=foo">
+				<xsl:variable name="duplicate">
+						<xsl:text>second def</xsl:text>
+				</xsl:variable>
+				<xsl:value-of select="$duplicate"/>
+			</xsl:if>
+		<div>
+					<xsl:value-of select="$notDuplicate"/>
+		</div>
+	</xsl:template>
+	-->
 	<xsl:template name="ned" match="elephant" handle="tmpl1">
 		<xsl:variable name="local2" handle="partialMatchA">
 			<xsl:text>Mr Local Variable the Second</xsl:text>

@@ -1,6 +1,5 @@
 package com.googlecode.monkeybrown.xslmin;
 
-import java.util.Map;
 import org.w3c.dom.Node;
 
 public class XslMinTestUtils
